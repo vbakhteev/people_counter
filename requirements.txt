@@ -1,0 +1,7 @@
+torch==1.7.1
+opencv-python==4.5.1.48
+numpy
+matplotlib
+scikit-image
+scipy
+tqdm
