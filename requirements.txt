@@ -10,4 +10,4 @@ matplotlib
 lap
 openpyxl
 Pillow
-tensorboardX
+tensorboard

@@ -1,10 +1,12 @@
-import os
-import numpy as np
 import copy
+import os
+
 import motmetrics as mm
+import numpy as np
+
 mm.lap.default_solver = 'lap'
 
-from tracking_utils.io import read_results, unzip_objs
+from src.lib.tracking_utils.io import read_results, unzip_objs
 
 
 class Evaluator(object):
@@ -53,15 +55,15 @@ class Evaluator(object):
             keep[match_js] = False
             trk_tlwhs = trk_tlwhs[keep]
             trk_ids = trk_ids[keep]
-        #match_is, match_js = mm.lap.linear_sum_assignment(iou_distance)
-        #match_is, match_js = map(lambda a: np.asarray(a, dtype=int), [match_is, match_js])
-        #match_ious = iou_distance[match_is, match_js]
+        # match_is, match_js = mm.lap.linear_sum_assignment(iou_distance)
+        # match_is, match_js = map(lambda a: np.asarray(a, dtype=int), [match_is, match_js])
+        # match_ious = iou_distance[match_is, match_js]
 
-        #match_js = np.asarray(match_js, dtype=int)
-        #match_js = match_js[np.logical_not(np.isnan(match_ious))]
-        #keep[match_js] = False
-        #trk_tlwhs = trk_tlwhs[keep]
-        #trk_ids = trk_ids[keep]
+        # match_js = np.asarray(match_js, dtype=int)
+        # match_js = match_js[np.logical_not(np.isnan(match_ious))]
+        # keep[match_js] = False
+        # trk_tlwhs = trk_tlwhs[keep]
+        # trk_ids = trk_ids[keep]
 
         # get distance matrix
         iou_distance = mm.distances.iou_matrix(gt_tlwhs, trk_tlwhs, max_iou=0.5)
@@ -79,7 +81,7 @@ class Evaluator(object):
         self.reset_accumulator()
 
         result_frame_dict = read_results(filename, self.data_type, is_gt=False)
-        #frames = sorted(list(set(self.gt_frame_dict.keys()) | set(result_frame_dict.keys())))
+        # frames = sorted(list(set(self.gt_frame_dict.keys()) | set(result_frame_dict.keys())))
         frames = sorted(list(set(result_frame_dict.keys())))
         for frame_id in frames:
             trk_objs = result_frame_dict.get(frame_id, [])

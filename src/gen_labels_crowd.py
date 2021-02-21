@@ -1,8 +1,8 @@
-import os.path as osp
-import os
-import cv2
 import json
-import numpy as np
+import os
+import os.path as osp
+
+import cv2
 
 
 def mkdirs(d):
@@ -15,7 +15,7 @@ def load_func(fpath):
     assert os.path.exists(fpath)
     with open(fpath, 'r') as fid:
         lines = fid.readlines()
-    records =[json.loads(line.strip('\n')) for line in lines]
+    records = [json.loads(line.strip('\n')) for line in lines]
     return records
 
 
@@ -57,5 +57,3 @@ if __name__ == '__main__':
     ann_train = '/data/yfzhang/MOT/JDE/crowdhuman/annotation_train.odgt'
     gen_labels_crowd(data_train, label_train, ann_train)
     gen_labels_crowd(data_val, label_val, ann_val)
-
-

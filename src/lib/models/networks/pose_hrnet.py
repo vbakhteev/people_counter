@@ -1,17 +1,12 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import os
 import logging
+import os
 
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 import torch.nn.functional as F
 
 from .config import cfg, update_config
-
 
 BN_MOMENTUM = 0.01
 logger = logging.getLogger(__name__)
@@ -138,7 +133,7 @@ class HighResolutionModule(nn.Module):
                          stride=1):
         downsample = None
         if stride != 1 or \
-           self.num_inchannels[branch_index] != num_channels[branch_index] * block.expansion:
+                self.num_inchannels[branch_index] != num_channels[branch_index] * block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(
                     self.num_inchannels[branch_index],
@@ -201,14 +196,14 @@ class HighResolutionModule(nn.Module):
                                 1, 1, 0, bias=False
                             ),
                             nn.BatchNorm2d(num_inchannels[i]),
-                            nn.Upsample(scale_factor=2**(j-i), mode='nearest')
+                            nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')
                         )
                     )
                 elif j == i:
                     fuse_layer.append(None)
                 else:
                     conv3x3s = []
-                    for k in range(i-j):
+                    for k in range(i - j):
                         if k == i - j - 1:
                             num_outchannels_conv3x3 = num_inchannels[i]
                             conv3x3s.append(
@@ -339,16 +334,16 @@ class PoseHighResolutionNet(nn.Module):
 
         last_inp_channels = np.int(np.sum(pre_stage_channels))
 
-        #self.last_layer = nn.Sequential(
-            #nn.Conv2d(
-                #in_channels=last_inp_channels,
-                #out_channels=64,
-                #kernel_size=1,
-                #stride=1,
-                #padding=0),
-            #nn.BatchNorm2d(64, momentum=BN_MOMENTUM),
-            #nn.ReLU(inplace=True),
-        #)
+        # self.last_layer = nn.Sequential(
+        # nn.Conv2d(
+        # in_channels=last_inp_channels,
+        # out_channels=64,
+        # kernel_size=1,
+        # stride=1,
+        # padding=0),
+        # nn.BatchNorm2d(64, momentum=BN_MOMENTUM),
+        # nn.ReLU(inplace=True),
+        # )
         head_conv = 256
         for head in self.heads:
             classes = self.heads[head]
@@ -391,10 +386,10 @@ class PoseHighResolutionNet(nn.Module):
                     transition_layers.append(None)
             else:
                 conv3x3s = []
-                for j in range(i+1-num_branches_pre):
+                for j in range(i + 1 - num_branches_pre):
                     inchannels = num_channels_pre_layer[-1]
                     outchannels = num_channels_cur_layer[i] \
-                        if j == i-num_branches_pre else inchannels
+                        if j == i - num_branches_pre else inchannels
                     conv3x3s.append(
                         nn.Sequential(
                             nn.Conv2d(
@@ -520,7 +515,7 @@ class PoseHighResolutionNet(nn.Module):
             need_init_state_dict = {}
             for name, m in pretrained_state_dict.items():
                 if name.split('.')[0] in self.pretrained_layers \
-                   or self.pretrained_layers[0] is '*':
+                        or self.pretrained_layers[0] is '*':
                     need_init_state_dict[name] = m
             self.load_state_dict(need_init_state_dict, strict=False)
         elif pretrained:

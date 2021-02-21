@@ -1,26 +1,20 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import _init_paths
+import logging
 import os
 import os.path as osp
+
 import cv2
-import logging
-import argparse
 import motmetrics as mm
 import numpy as np
 import torch
 
-from tracker.multitracker import JDETracker
-from tracking_utils import visualization as vis
-from tracking_utils.log import logger
-from tracking_utils.timer import Timer
-from tracking_utils.evaluation import Evaluator
-import datasets.dataset.jde as datasets
-
-from tracking_utils.utils import mkdir_if_missing
-from opts import opts
+import src.lib.datasets.dataset.jde as datasets
+from src.lib.opts import opts
+from src.lib.tracker.multitracker import JDETracker
+from src.lib.tracking_utils import visualization as vis
+from src.lib.tracking_utils.evaluation import Evaluator
+from src.lib.tracking_utils.log import logger
+from src.lib.tracking_utils.timer import Timer
+from src.lib.tracking_utils.utils import mkdir_if_missing
 
 
 def write_results(filename, results, data_type):
@@ -40,11 +34,11 @@ def write_results(filename, results, data_type):
                     continue
                 x1, y1, w, h = tlwh
                 x2, y2 = x1 + w, y1 + h
-                #size = w * h
-                #if size > 7000:
-                #if size <= 7000 or size >= 15000:
-                #if size < 15000:
-                    #continue
+                # size = w * h
+                # if size > 7000:
+                # if size <= 7000 or size >= 15000:
+                # if size < 15000:
+                # continue
                 line = save_format.format(frame=frame_id, id=track_id, x1=x1, y1=y1, x2=x2, y2=y2, w=w, h=h)
                 f.write(line)
     logger.info('save results to {}'.format(filename))
@@ -71,7 +65,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         online_targets = tracker.update(blob, img0)
         online_tlwhs = []
         online_ids = []
-        #online_scores = []
+        # online_scores = []
         for t in online_targets:
             tlwh = t.tlwh
             tid = t.track_id
@@ -79,11 +73,11 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
             if tlwh[2] * tlwh[3] > opt.min_box_area and not vertical:
                 online_tlwhs.append(tlwh)
                 online_ids.append(tid)
-                #online_scores.append(t.score)
+                # online_scores.append(t.score)
         timer.toc()
         # save results
         results.append((frame_id + 1, online_tlwhs, online_ids))
-        #results.append((frame_id + 1, online_tlwhs, online_ids, online_scores))
+        # results.append((frame_id + 1, online_tlwhs, online_ids, online_scores))
         if show_image or save_dir is not None:
             online_im = vis.plot_tracking(img0, online_tlwhs, online_ids, frame_id=frame_id,
                                           fps=1. / timer.average_time)
@@ -94,7 +88,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         frame_id += 1
     # save results
     write_results(result_filename, results, data_type)
-    #write_results_score(result_filename, results, data_type)
+    # write_results_score(result_filename, results, data_type)
     return frame_id, timer.average_time, timer.calls
 
 
@@ -160,7 +154,7 @@ if __name__ == '__main__':
                       PETS09-S2L1
                       TUD-Campus
                       TUD-Stadtmitte'''
-        #seqs_str = '''TUD-Campus'''
+        # seqs_str = '''TUD-Campus'''
         data_root = os.path.join(opt.data_dir, 'MOT15/images/train')
     else:
         seqs_str = '''MOT16-02
@@ -202,12 +196,12 @@ if __name__ == '__main__':
                       MOT17-08-SDP
                       MOT17-12-SDP
                       MOT17-14-SDP'''
-        #seqs_str = '''MOT17-01-SDP
-                      #MOT17-06-SDP
-                      #MOT17-07-SDP
-                      #MOT17-12-SDP
-                      #'''
-        #seqs_str = '''MOT17-07-SDP MOT17-08-SDP'''
+        # seqs_str = '''MOT17-01-SDP
+        # MOT17-06-SDP
+        # MOT17-07-SDP
+        # MOT17-12-SDP
+        # '''
+        # seqs_str = '''MOT17-07-SDP MOT17-08-SDP'''
         data_root = os.path.join(opt.data_dir, 'MOT17/images/test')
     if opt.val_mot17:
         seqs_str = '''MOT17-02-SDP
@@ -217,7 +211,7 @@ if __name__ == '__main__':
                       MOT17-10-SDP
                       MOT17-11-SDP
                       MOT17-13-SDP'''
-        #seqs_str = '''MOT17-02-SDP'''
+        # seqs_str = '''MOT17-02-SDP'''
         data_root = os.path.join(opt.data_dir, 'MOT17/images/train')
     if opt.val_mot15:
         seqs_str = '''Venice-2
@@ -232,7 +226,7 @@ if __name__ == '__main__':
                       ADL-Rundle-8
                       ETH-Pedcross2
                       TUD-Stadtmitte'''
-        #seqs_str = '''Venice-2'''
+        # seqs_str = '''Venice-2'''
         data_root = os.path.join(opt.data_dir, 'MOT15/images/train')
     if opt.val_mot20:
         seqs_str = '''MOT20-01

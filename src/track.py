@@ -1,26 +1,20 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import _init_paths
+import logging
 import os
 import os.path as osp
+
 import cv2
-import logging
-import argparse
 import motmetrics as mm
 import numpy as np
 import torch
 
-from tracker.multitracker import JDETracker
-from tracking_utils import visualization as vis
-from tracking_utils.log import logger
-from tracking_utils.timer import Timer
-from tracking_utils.evaluation import Evaluator
-import datasets.dataset.jde as datasets
-
-from tracking_utils.utils import mkdir_if_missing
-from opts import opts
+import src.lib.datasets.dataset.jde as datasets
+from src.lib.opts import opts
+from src.lib.tracker.multitracker import JDETracker
+from src.lib.tracking_utils import visualization as vis
+from src.lib.tracking_utils.evaluation import Evaluator
+from src.lib.tracking_utils.log import logger
+from src.lib.tracking_utils.timer import Timer
+from src.lib.tracking_utils.utils import mkdir_if_missing
 
 
 def write_results(filename, results, data_type):
@@ -74,10 +68,10 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     timer = Timer()
     results = []
     frame_id = 0
-    #for path, img, img0 in dataloader:
+    # for path, img, img0 in dataloader:
     for i, (path, img, img0) in enumerate(dataloader):
-        #if i % 8 != 0:
-            #continue
+        # if i % 8 != 0:
+        # continue
         if frame_id % 20 == 0:
             logger.info('Processing frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, timer.average_time)))
 
@@ -90,7 +84,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         online_targets = tracker.update(blob, img0)
         online_tlwhs = []
         online_ids = []
-        #online_scores = []
+        # online_scores = []
         for t in online_targets:
             tlwh = t.tlwh
             tid = t.track_id
@@ -98,11 +92,11 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
             if tlwh[2] * tlwh[3] > opt.min_box_area and not vertical:
                 online_tlwhs.append(tlwh)
                 online_ids.append(tid)
-                #online_scores.append(t.score)
+                # online_scores.append(t.score)
         timer.toc()
         # save results
         results.append((frame_id + 1, online_tlwhs, online_ids))
-        #results.append((frame_id + 1, online_tlwhs, online_ids, online_scores))
+        # results.append((frame_id + 1, online_tlwhs, online_ids, online_scores))
         if show_image or save_dir is not None:
             online_im = vis.plot_tracking(img0, online_tlwhs, online_ids, frame_id=frame_id,
                                           fps=1. / timer.average_time)
@@ -113,7 +107,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         frame_id += 1
     # save results
     write_results(result_filename, results, data_type)
-    #write_results_score(result_filename, results, data_type)
+    # write_results_score(result_filename, results, data_type)
     return frame_id, timer.average_time, timer.calls
 
 
@@ -179,7 +173,7 @@ if __name__ == '__main__':
                       PETS09-S2L1
                       TUD-Campus
                       TUD-Stadtmitte'''
-        #seqs_str = '''TUD-Campus'''
+        # seqs_str = '''TUD-Campus'''
         data_root = os.path.join(opt.data_dir, 'MOT15/images/train')
     else:
         seqs_str = '''MOT16-02
@@ -198,8 +192,8 @@ if __name__ == '__main__':
                       MOT16-08
                       MOT16-12
                       MOT16-14'''
-        #seqs_str = '''MOT16-01 MOT16-07 MOT16-12 MOT16-14'''
-        #seqs_str = '''MOT16-06 MOT16-08'''
+        # seqs_str = '''MOT16-01 MOT16-07 MOT16-12 MOT16-14'''
+        # seqs_str = '''MOT16-06 MOT16-08'''
         data_root = os.path.join(opt.data_dir, 'MOT16/test')
     if opt.test_mot15:
         seqs_str = '''ADL-Rundle-1

@@ -1,3 +1,4 @@
+import copy
 import glob
 import math
 import os
@@ -7,17 +8,11 @@ import time
 from collections import OrderedDict
 
 import cv2
-import json
 import numpy as np
 import torch
-import copy
 
-from torch.utils.data import Dataset
-from torchvision.transforms import transforms as T
-from cython_bbox import bbox_overlaps as bbox_ious
-from opts import opts
-from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian
-from utils.utils import xyxy2xywh, generate_anchors, xywh2xyxy, encode_delta
+from src.lib.utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian
+from src.lib.utils.utils import xyxy2xywh
 
 
 class LoadImages:  # for inference
@@ -254,7 +249,7 @@ def letterbox(img, height=608, width=1088,
 
 
 def random_affine(img, targets=None, degrees=(-10, 10), translate=(.1, .1), scale=(.9, 1.1), shear=(-2, 2),
-                  borderValue=(127.5, 127.5, 127.5)):
+                  border_value=(127.5, 127.5, 127.5)):
     # torchvision.transforms.RandomAffine(degrees=(-10, 10), translate=(.1, .1), scale=(.9, 1.1), shear=(-10, 10))
     # https://medium.com/uruvideo/dataset-augmentation-with-random-homographies-a8f4b44830d4
 
@@ -281,7 +276,7 @@ def random_affine(img, targets=None, degrees=(-10, 10), translate=(.1, .1), scal
 
     M = S @ T @ R  # Combined rotation matrix. ORDER IS IMPORTANT HERE!!
     imw = cv2.warpPerspective(img, M, dsize=(width, height), flags=cv2.INTER_LINEAR,
-                              borderValue=borderValue)  # BGR order borderValue
+                              borderValue=border_value)  # BGR order borderValue
 
     # Return warped points also
     if targets is not None:
@@ -310,10 +305,10 @@ def random_affine(img, targets=None, degrees=(-10, 10), translate=(.1, .1), scal
             xy = np.concatenate((x - w / 2, y - h / 2, x + w / 2, y + h / 2)).reshape(4, n).T
 
             # reject warped points outside of image
-            #np.clip(xy[:, 0], 0, width, out=xy[:, 0])
-            #np.clip(xy[:, 2], 0, width, out=xy[:, 2])
-            #np.clip(xy[:, 1], 0, height, out=xy[:, 1])
-            #np.clip(xy[:, 3], 0, height, out=xy[:, 3])
+            # np.clip(xy[:, 0], 0, width, out=xy[:, 0])
+            # np.clip(xy[:, 2], 0, width, out=xy[:, 2])
+            # np.clip(xy[:, 1], 0, height, out=xy[:, 1])
+            # np.clip(xy[:, 3], 0, height, out=xy[:, 3])
             w = xy[:, 2] - xy[:, 0]
             h = xy[:, 3] - xy[:, 1]
             area = w * h
@@ -433,9 +428,9 @@ class JointDataset(LoadImagesAndLabels):  # for training
         else:
             wh = np.zeros((self.max_objs, 2), dtype=np.float32)
         reg = np.zeros((self.max_objs, 2), dtype=np.float32)
-        ind = np.zeros((self.max_objs, ), dtype=np.int64)
-        reg_mask = np.zeros((self.max_objs, ), dtype=np.uint8)
-        ids = np.zeros((self.max_objs, ), dtype=np.int64)
+        ind = np.zeros((self.max_objs,), dtype=np.int64)
+        reg_mask = np.zeros((self.max_objs,), dtype=np.uint8)
+        ids = np.zeros((self.max_objs,), dtype=np.int64)
         bbox_xys = np.zeros((self.max_objs, 4), dtype=np.float32)
 
         draw_gaussian = draw_msra_gaussian if self.opt.mse_loss else draw_umich_gaussian
@@ -465,7 +460,7 @@ class JointDataset(LoadImagesAndLabels):  # for training
                 radius = gaussian_radius((math.ceil(h), math.ceil(w)))
                 radius = max(0, int(radius))
                 radius = 6 if self.opt.mse_loss else radius
-                #radius = max(1, int(radius)) if self.opt.mse_loss else radius
+                # radius = max(1, int(radius)) if self.opt.mse_loss else radius
                 ct = np.array(
                     [bbox[0], bbox[1]], dtype=np.float32)
                 ct_int = ct.astype(np.int32)
@@ -481,7 +476,8 @@ class JointDataset(LoadImagesAndLabels):  # for training
                 ids[k] = label[1]
                 bbox_xys[k] = bbox_xy
 
-        ret = {'input': imgs, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh, 'reg': reg, 'ids': ids, 'bbox': bbox_xys}
+        ret = {'input': imgs, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh, 'reg': reg, 'ids': ids,
+               'bbox': bbox_xys}
         return ret
 
 
@@ -557,5 +553,3 @@ class DetDataset(LoadImagesAndLabels):  # for training
                 labels[i, 1] += self.tid_start_index[ds]
 
         return imgs, labels0, img_path, (h, w)
-
-

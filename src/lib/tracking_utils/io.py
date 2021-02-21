@@ -1,8 +1,9 @@
 import os
 from typing import Dict
+
 import numpy as np
 
-from tracking_utils.log import logger
+from src.lib.tracking_utils.log import logger
 
 
 def write_results(filename, results_dict: Dict, data_type: str):
@@ -96,10 +97,10 @@ def read_mot_results(filename, is_gt, is_ignore):
                 else:
                     score = float(linelist[6])
 
-                #if box_size > 7000:
-                #if box_size <= 7000 or box_size >= 15000:
-                #if box_size < 15000:
-                    #continue
+                # if box_size > 7000:
+                # if box_size <= 7000 or box_size >= 15000:
+                # if box_size < 15000:
+                # continue
 
                 tlwh = tuple(map(float, linelist[2:6]))
                 target_id = int(linelist[1])

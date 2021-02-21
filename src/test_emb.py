@@ -1,28 +1,19 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import _init_paths
-import argparse
-import torch
 import json
-import time
-import os
-import cv2
 import math
+import os
+import time
 
-from sklearn import metrics
-from scipy import interpolate
 import numpy as np
-from torchvision.transforms import transforms as T
+import torch
 import torch.nn.functional as F
-from models.model import create_model, load_model
-from datasets.dataset.jde import JointDataset, collate_fn
-from models.utils import _tranpose_and_gather_feat
-from utils.utils import xywh2xyxy, ap_per_class, bbox_iou
-from opts import opts
-from models.decode import mot_decode
-from utils.post_process import ctdet_post_process
+from scipy import interpolate
+from sklearn import metrics
+from torchvision.transforms import transforms as T
+
+from src.lib.datasets.dataset.jde import JointDataset
+from src.lib.models.model import create_model, load_model
+from src.lib.models.utils import _tranpose_and_gather_feat
+from src.lib.opts import opts
 
 
 def test_emb(
@@ -103,6 +94,7 @@ def test_emb(
     for f, fa in enumerate(far_levels):
         print('TPR@FAR={:.7f}: {:.4f}'.format(fa, tar_at_far[f]))
     return tar_at_far
+
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '1'

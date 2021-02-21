@@ -1,25 +1,17 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import _init_paths
-import argparse
-import torch
 import json
-import time
 import os
-import cv2
+import time
 
-from sklearn import metrics
-from scipy import interpolate
 import numpy as np
+import torch
 from torchvision.transforms import transforms as T
-from models.model import create_model, load_model
-from datasets.dataset.jde import DetDataset, collate_fn
-from utils.utils import xywh2xyxy, ap_per_class, bbox_iou
-from opts import opts
-from models.decode import mot_decode
-from utils.post_process import ctdet_post_process
+
+from src.lib.datasets.dataset.jde import DetDataset, collate_fn
+from src.lib.models.decode import mot_decode
+from src.lib.models.model import create_model, load_model
+from src.lib.opts import opts
+from src.lib.utils.post_process import ctdet_post_process
+from src.lib.utils.utils import xywh2xyxy, ap_per_class, bbox_iou
 
 
 def post_process(opt, dets, meta):
@@ -71,7 +63,7 @@ def test_det(
     print('Creating model...')
     model = create_model(opt.arch, opt.heads, opt.head_conv)
     model = load_model(model, opt.load_model)
-    #model = torch.nn.DataParallel(model)
+    # model = torch.nn.DataParallel(model)
     model = model.to(opt.device)
     model.eval()
 
@@ -87,7 +79,7 @@ def test_det(
     AP_accum, AP_accum_count = np.zeros(nC), np.zeros(nC)
     for batch_i, (imgs, targets, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
-        #seen += batch_size
+        # seen += batch_size
 
         output = model(imgs.cuda())[-1]
         origin_shape = shapes[0]
@@ -109,15 +101,15 @@ def test_det(
         targets = [targets[i][:int(l)] for i, l in enumerate(targets_len)]
         for si, labels in enumerate(targets):
             seen += 1
-            #path = paths[si]
-            #img0 = cv2.imread(path)
+            # path = paths[si]
+            # img0 = cv2.imread(path)
             dets = detections[si]
             dets = dets.unsqueeze(0)
             dets = post_process(opt, dets, meta)
             dets = merge_outputs(opt, [dets])[1]
 
-            #remain_inds = dets[:, 4] > opt.det_thres
-            #dets = dets[remain_inds]
+            # remain_inds = dets[:, 4] > opt.det_thres
+            # dets = dets[remain_inds]
             if dets is None:
                 # If there are labels but no detections mark as zero AP
                 if labels.size(0) != 0:
@@ -207,6 +199,7 @@ def test_det(
 
     # Return mAP
     return mean_mAP, mean_R, mean_P
+
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '1'

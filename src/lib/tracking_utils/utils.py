@@ -1,8 +1,7 @@
 import glob
-import random
-import time
 import os
 import os.path as osp
+import random
 
 import cv2
 import matplotlib.pyplot as plt
@@ -11,10 +10,10 @@ import torch
 import torch.nn.functional as F
 from torchvision.ops import nms
 
-#import maskrcnn_benchmark.layers.nms as nms
 # Set printoptions
 torch.set_printoptions(linewidth=1320, precision=5, profile='long')
 np.set_printoptions(linewidth=320, formatter={'float_kind': '{:11.5g}'.format})  # format short g, %precision=5
+
 
 def mkdir_if_missing(d):
     if not osp.exists(d):
@@ -50,8 +49,7 @@ def model_info(model):  # Plots a line-by-line description of a PyTorch model
         name = name.replace('module_list.', '')
         print('%5g %50s %9s %12g %20s %12.3g %12.3g' % (
             i, name, p.requires_grad, p.numel(), list(p.shape), p.mean(), p.std()))
-    print('Model Summary: %g layers, %g parameters, %g gradients\n' % (i + 1, n_p, n_g))
-
+    print(f'Model Summary: {i + 1} layers, {n_p} parameters, {n_g} gradients\n')
 
 
 def plot_one_box(x, img, color=None, label=None, line_thickness=None):  # Plots one bounding box on image img
@@ -217,8 +215,8 @@ def bbox_iou(box1, box2, x1y1x2y2=False):
     inter_area = torch.clamp(inter_rect_x2 - inter_rect_x1, 0) * torch.clamp(inter_rect_y2 - inter_rect_y1, 0)
     # Union Area
     b1_area = ((b1_x2 - b1_x1) * (b1_y2 - b1_y1))
-    b1_area = ((b1_x2 - b1_x1) * (b1_y2 - b1_y1)).view(-1,1).expand(N,M)
-    b2_area = ((b2_x2 - b2_x1) * (b2_y2 - b2_y1)).view(1,-1).expand(N,M)
+    b1_area = ((b1_x2 - b1_x1) * (b1_y2 - b1_y1)).view(-1, 1).expand(N, M)
+    b2_area = ((b2_x2 - b2_x1) * (b2_y2 - b2_y1)).view(1, -1).expand(N, M)
 
     return inter_area / (b1_area + b2_area - inter_area + 1e-16)
 
@@ -233,27 +231,27 @@ def build_targets_max(target, anchor_wh, nA, nC, nGh, nGw):
     twh = torch.zeros(nB, nA, nGh, nGw, 2).cuda()
     tconf = torch.LongTensor(nB, nA, nGh, nGw).fill_(0).cuda()
     tcls = torch.ByteTensor(nB, nA, nGh, nGw, nC).fill_(0).cuda()  # nC = number of classes
-    tid = torch.LongTensor(nB, nA, nGh, nGw, 1).fill_(-1).cuda() 
+    tid = torch.LongTensor(nB, nA, nGh, nGw, 1).fill_(-1).cuda()
     for b in range(nB):
         t = target[b]
         t_id = t[:, 1].clone().long().cuda()
-        t = t[:,[0,2,3,4,5]]
+        t = t[:, [0, 2, 3, 4, 5]]
         nTb = len(t)  # number of targets
         if nTb == 0:
             continue
 
-        #gxy, gwh = t[:, 1:3] * nG, t[:, 3:5] * nG
-        gxy, gwh = t[: , 1:3].clone() , t[:, 3:5].clone()
+        # gxy, gwh = t[:, 1:3] * nG, t[:, 3:5] * nG
+        gxy, gwh = t[:, 1:3].clone(), t[:, 3:5].clone()
         gxy[:, 0] = gxy[:, 0] * nGw
         gxy[:, 1] = gxy[:, 1] * nGh
         gwh[:, 0] = gwh[:, 0] * nGw
         gwh[:, 1] = gwh[:, 1] * nGh
-        gi = torch.clamp(gxy[:, 0], min=0, max=nGw -1).long()
-        gj = torch.clamp(gxy[:, 1], min=0, max=nGh -1).long()
+        gi = torch.clamp(gxy[:, 0], min=0, max=nGw - 1).long()
+        gj = torch.clamp(gxy[:, 1], min=0, max=nGh - 1).long()
 
         # Get grid box indices and prevent overflows (i.e. 13.01 on 13 anchors)
-        #gi, gj = torch.clamp(gxy.long(), min=0, max=nG - 1).t()
-        #gi, gj = gxy.long().t()
+        # gi, gj = torch.clamp(gxy.long(), min=0, max=nG - 1).t()
+        # gi, gj = gxy.long().t()
 
         # iou of targets-anchors (using wh only)
         box1 = gwh
@@ -285,7 +283,7 @@ def build_targets_max(target, anchor_wh, nA, nC, nGh, nGw):
         else:
             if iou_best < 0.60:
                 continue
-        
+
         tc, gxy, gwh = t[:, 0].long(), t[:, 1:3].clone(), t[:, 3:5].clone()
         gxy[:, 0] = gxy[:, 0] * nGw
         gxy[:, 1] = gxy[:, 1] * nGh
@@ -307,33 +305,33 @@ def build_targets_max(target, anchor_wh, nA, nC, nGh, nGw):
     return tconf, tbox, tid
 
 
-
-
 def generate_anchor(nGh, nGw, anchor_wh):
     nA = len(anchor_wh)
-    yy, xx =torch.meshgrid(torch.arange(nGh), torch.arange(nGw))
+    yy, xx = torch.meshgrid(torch.arange(nGh), torch.arange(nGw))
     xx, yy = xx.cuda(), yy.cuda()
 
-    mesh = torch.stack([xx, yy], dim=0)                                              # Shape 2, nGh, nGw
-    mesh = mesh.unsqueeze(0).repeat(nA,1,1,1).float()                                # Shape nA x 2 x nGh x nGw
-    anchor_offset_mesh = anchor_wh.unsqueeze(-1).unsqueeze(-1).repeat(1, 1, nGh,nGw) # Shape nA x 2 x nGh x nGw
-    anchor_mesh = torch.cat([mesh, anchor_offset_mesh], dim=1)                       # Shape nA x 4 x nGh x nGw
+    mesh = torch.stack([xx, yy], dim=0)  # Shape 2, nGh, nGw
+    mesh = mesh.unsqueeze(0).repeat(nA, 1, 1, 1).float()  # Shape nA x 2 x nGh x nGw
+    anchor_offset_mesh = anchor_wh.unsqueeze(-1).unsqueeze(-1).repeat(1, 1, nGh, nGw)  # Shape nA x 2 x nGh x nGw
+    anchor_mesh = torch.cat([mesh, anchor_offset_mesh], dim=1)  # Shape nA x 4 x nGh x nGw
     return anchor_mesh
 
+
 def encode_delta(gt_box_list, fg_anchor_list):
-    px, py, pw, ph = fg_anchor_list[:, 0], fg_anchor_list[:,1], \
-                     fg_anchor_list[:, 2], fg_anchor_list[:,3]
+    px, py, pw, ph = fg_anchor_list[:, 0], fg_anchor_list[:, 1], \
+                     fg_anchor_list[:, 2], fg_anchor_list[:, 3]
     gx, gy, gw, gh = gt_box_list[:, 0], gt_box_list[:, 1], \
                      gt_box_list[:, 2], gt_box_list[:, 3]
     dx = (gx - px) / pw
     dy = (gy - py) / ph
-    dw = torch.log(gw/pw)
-    dh = torch.log(gh/ph)
+    dw = torch.log(gw / pw)
+    dh = torch.log(gh / ph)
     return torch.stack([dx, dy, dw, dh], dim=1)
 
+
 def decode_delta(delta, fg_anchor_list):
-    px, py, pw, ph = fg_anchor_list[:, 0], fg_anchor_list[:,1], \
-                     fg_anchor_list[:, 2], fg_anchor_list[:,3]
+    px, py, pw, ph = fg_anchor_list[:, 0], fg_anchor_list[:, 1], \
+                     fg_anchor_list[:, 2], fg_anchor_list[:, 3]
     dx, dy, dw, dh = delta[:, 0], delta[:, 1], delta[:, 2], delta[:, 3]
     gx = pw * dx + px
     gy = ph * dy + py
@@ -341,22 +339,23 @@ def decode_delta(delta, fg_anchor_list):
     gh = ph * torch.exp(dh)
     return torch.stack([gx, gy, gw, gh], dim=1)
 
+
 def decode_delta_map(delta_map, anchors):
-    '''
+    """
     :param: delta_map, shape (nB, nA, nGh, nGw, 4)
     :param: anchors, shape (nA,4)
-    '''
+    """
     nB, nA, nGh, nGw, _ = delta_map.shape
-    anchor_mesh = generate_anchor(nGh, nGw, anchors) 
-    anchor_mesh = anchor_mesh.permute(0,2,3,1).contiguous()              # Shpae (nA x nGh x nGw) x 4
-    anchor_mesh = anchor_mesh.unsqueeze(0).repeat(nB,1,1,1,1)
-    pred_list = decode_delta(delta_map.view(-1,4), anchor_mesh.view(-1,4))
+    anchor_mesh = generate_anchor(nGh, nGw, anchors)
+    anchor_mesh = anchor_mesh.permute(0, 2, 3, 1).contiguous()  # Shpae (nA x nGh x nGw) x 4
+    anchor_mesh = anchor_mesh.unsqueeze(0).repeat(nB, 1, 1, 1, 1)
+    pred_list = decode_delta(delta_map.view(-1, 4), anchor_mesh.view(-1, 4))
     pred_map = pred_list.view(nB, nA, nGh, nGw, 4)
     return pred_map
 
 
 def pooling_nms(heatmap, kernel=1):
-    pad = (kernel -1 ) // 2
+    pad = (kernel - 1) // 2
     hmax = F.max_pool2d(heatmap, (kernel, kernel), stride=1, padding=pad)
     keep = (hmax == heatmap).float()
     return keep * heatmap
@@ -389,7 +388,7 @@ def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.2):
         # From (center x, center y, width, height) to (x1, y1, x2, y2)
         pred[:, :4] = xywh2xyxy(pred[:, :4])
         nms_indices = nms(pred[:, :4], pred[:, 4], nms_thres)
-        det_max = pred[nms_indices]        
+        det_max = pred[nms_indices]
 
         if len(det_max) > 0:
             # Add max detections to outputs

@@ -1,28 +1,18 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import _init_paths
+import logging
 import os
 import os.path as osp
-import cv2
-import logging
-import argparse
-import motmetrics as mm
-import numpy as np
 
-from tracker.fusetracker import FuseTracker
-from tracking_utils import visualization as vis
-from tracking_utils.log import logger
-from tracking_utils.timer import Timer
-from tracking_utils.evaluation import Evaluator
-import datasets.dataset.jde as datasets
+import numpy as np
 import torch
-from tracking_utils.utils import mkdir_if_missing, tlbr2tlwh
-from opts import opts
-from models.decode import mot_decode
-from utils.post_process import ctdet_post_process
-from models.model import create_model, load_model
+
+import src.lib.datasets.dataset.jde as datasets
+from src.lib.models.decode import mot_decode
+from src.lib.models.model import create_model, load_model
+from src.lib.opts import opts
+from src.lib.tracking_utils.log import logger
+from src.lib.tracking_utils.timer import Timer
+from src.lib.tracking_utils.utils import mkdir_if_missing, xyxy2xywh
+from src.lib.utils.post_process import ctdet_post_process
 
 
 def write_results_score(filename, results):
@@ -106,7 +96,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         dets = merge_outputs(opt, [dets])[1]
 
         dets = dets[dets[:, 4] > 0.1]
-        dets[:, :4] = tlbr2tlwh(dets[:, :4])
+        dets[:, :4] = xyxy2xywh(dets[:, :4])
 
         tlwhs = []
         scores = []
@@ -119,7 +109,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         frame_id += 1
     # save results
     write_results_score(result_filename, results)
-    #write_results_score_hie(result_filename, results, data_type)
+    # write_results_score_hie(result_filename, results, data_type)
     return frame_id, timer.average_time, timer.calls
 
 
@@ -131,7 +121,6 @@ def main(opt, data_root='/data/MOT16/train', det_root=None, seqs=('MOT16-05',), 
     data_type = 'mot'
 
     # run tracking
-    accs = []
     n_frame = 0
     timer_avgs, timer_calls = [], []
     for seq in seqs:
@@ -158,8 +147,8 @@ if __name__ == '__main__':
     opt = opts().init()
     if opt.val_hie:
         seqs_str = '''1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19'''
-        #seqs_str = '''9'''
-        #seqs_str = '''11 12 13 14 15 16 17 18 19'''
+        # seqs_str = '''9'''
+        # seqs_str = '''11 12 13 14 15 16 17 18 19'''
         data_root = '/data/yfzhang/MOT/JDE/HIE/HIE20/images/train'
     elif opt.test_hie:
         seqs_str = '''20 21 22 23 24 25 26 27 28 29 30 31 32'''
@@ -173,7 +162,7 @@ if __name__ == '__main__':
                       MOT17-10-SDP
                       MOT17-11-SDP
                       MOT17-13-SDP'''
-        #seqs_str = '''MOT17-02-SDP'''
+        # seqs_str = '''MOT17-02-SDP'''
         data_root = os.path.join(opt.data_dir, 'MOT17/images/train')
     else:
         seqs_str = None
