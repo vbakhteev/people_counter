@@ -1,7 +1,6 @@
 yacs
 opencv-python
 cython
-cython-bbox
 scipy
 numba
 progress
