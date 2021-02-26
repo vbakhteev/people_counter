@@ -1,0 +1,32 @@
+name: mot
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - pip>=20.1
+  - pydantic>=1.6
+  - pyyaml>=5.3
+  - pytorch=1.7.1
+  - torchvision=0.8
+  - cudatoolkit=10.2
+  - pytorch-lightning=1.2
+  - nvidia-apex=0.1
+  - pandas>=1.1
+  - scikit-learn>=0.24
+  - matplotlib
+  - seaborn
+  - jupyterlab
+  - pip:
+      - opencv-python>=4.5
+      - albumentations>=0.5.2
+      - torchsummary==1.5.1
+      - pytorch-lightning-bolts==0.3
+      - jedi==0.17.2
+      - cython
+      - progress
+      - lap
+      - openpyxl
+      - yacs
+      - numba
