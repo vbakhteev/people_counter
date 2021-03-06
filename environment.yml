@@ -8,8 +8,8 @@ dependencies:
   - pip>=20.1
   - pydantic>=1.6
   - pyyaml>=5.3
-  - pytorch=1.7.1
-  - torchvision=0.8
+  - pytorch=1.8
+  - torchvision=0.9
   - cudatoolkit=10.2
   - pytorch-lightning=1.2
   - nvidia-apex=0.1
@@ -24,9 +24,9 @@ dependencies:
       - torchsummary==1.5.1
       - pytorch-lightning-bolts==0.3
       - jedi==0.17.2
-      - cython
       - progress
       - lap
       - openpyxl
       - yacs
       - numba
+      - motmetrics

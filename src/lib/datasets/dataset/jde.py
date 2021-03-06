@@ -10,6 +10,8 @@ from collections import OrderedDict
 import cv2
 import numpy as np
 import torch
+import albumentations as alb
+from albumentations.pytorch import ToTensorV2
 
 from src.lib.utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian
 from src.lib.utils.utils import xyxy2xywh
@@ -105,10 +107,11 @@ class LoadVideo:  # for inference
     def __next__(self):
         self.count += 1
         if self.count == len(self):
+        # if self.count == 1000:
             raise StopIteration
         # Read image
         res, img0 = self.cap.read()  # BGR
-        assert img0 is not None, 'Failed to load frame {:d}'.format(self.count)
+        assert img0 is not None, f'Failed to load frame {self.count}'
         img0 = cv2.resize(img0, (self.w, self.h))
 
         # Padded resize
@@ -119,7 +122,6 @@ class LoadVideo:  # for inference
         img = np.ascontiguousarray(img, dtype=np.float32)
         img /= 255.0
 
-        # cv2.imwrite(img_path + '.letterbox.jpg', 255 * img.transpose((1, 2, 0))[:, :, ::-1])  # save letterbox image
         return self.count, img, img0
 
     def __len__(self):

@@ -1,13 +1,13 @@
 import logging
-import math
 from os.path import join
 
+import math
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 from torch import nn
-from torchvision.ops.deform_conv import DeformConv2d
+from torchvision.ops.deform_conv import DeformConv2d, deform_conv2d
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -345,12 +345,41 @@ class DeformConv(nn.Module):
             nn.BatchNorm2d(cho, momentum=BN_MOMENTUM),
             nn.ReLU(inplace=True)
         )
-        DeformConv2d(chi, cho, kernel_size=(3, 3), stride=1, padding=1, dilation=1, groups=1)
+        self.conv = DCN(chi, cho, kernel_size=(3, 3), stride=1, padding=1, dilation=1, groups=1)
 
     def forward(self, x):
         x = self.conv(x)
         x = self.actf(x)
         return x
+
+
+class DCN(DeformConv2d):
+
+    def __init__(self, in_channels, out_channels,
+                 kernel_size, stride, padding,
+                 dilation=1, groups=1):
+        super(DCN, self).__init__(in_channels, out_channels,
+                                  kernel_size, stride, padding, dilation, groups)
+
+        channels_ = self.groups * 3 * self.kernel_size[0] * self.kernel_size[1]
+        self.conv_offset_mask = nn.Conv2d(self.in_channels,
+                                          channels_,
+                                          kernel_size=self.kernel_size,
+                                          stride=self.stride,
+                                          padding=self.padding,
+                                          bias=True)
+        self.init_offset()
+
+    def init_offset(self):
+        self.conv_offset_mask.weight.data.zero_()
+        self.conv_offset_mask.bias.data.zero_()
+
+    def forward(self, input):
+        out = self.conv_offset_mask(input)
+        o1, o2, mask = torch.chunk(out, 3, dim=1)
+        offset = torch.cat((o1, o2), dim=1)
+        mask = torch.sigmoid(mask)
+        return super().forward(input, offset, mask=mask)
 
 
 class IDAUp(nn.Module):

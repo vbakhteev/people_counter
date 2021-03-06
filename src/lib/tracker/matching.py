@@ -65,7 +65,11 @@ def iou_distance(atracks, btracks):
     else:
         atlbrs = [track.tlbr for track in atracks]
         btlbrs = [track.tlbr for track in btracks]
-    _ious = box_iou(torch.tensor(atlbrs), torch.tensor(btlbrs))
+
+    if not (len(atlbrs) and len(btlbrs)):
+        return 1 - np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float)
+
+    _ious = box_iou(torch.tensor(atlbrs), torch.tensor(btlbrs)).numpy()
     cost_matrix = 1 - _ious
 
     return cost_matrix
@@ -83,8 +87,6 @@ def embedding_distance(tracks, detections, metric='cosine'):
     if cost_matrix.size == 0:
         return cost_matrix
     det_features = np.asarray([track.curr_feat for track in detections], dtype=np.float)
-    # for i, track in enumerate(tracks):
-    # cost_matrix[i, :] = np.maximum(0.0, cdist(track.smooth_feat.reshape(1,-1), det_features, metric))
     track_features = np.asarray([track.smooth_feat for track in tracks], dtype=np.float)
     cost_matrix = np.maximum(0.0, cdist(track_features, det_features, metric))  # Nomalized features
     return cost_matrix
