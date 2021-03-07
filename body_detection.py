@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append('./FairMOT/src/lib')
-
 import argparse
 
 import cv2
@@ -9,12 +5,11 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from tracker.multitracker import JDETracker
-from datasets.dataset.jde import letterbox
-
-from src.io import get_video_capture, get_video_writer
-from src.utils import draw_box, get_color, iou
 from configs.fairmot import opt
+from src.io import get_video_capture, get_video_writer
+from src.lib.datasets.dataset.jde import letterbox
+from src.lib.tracker.multitracker import JDETracker
+from src.utils import draw_box, get_color, iou
 
 
 def parse_args():
@@ -31,13 +26,14 @@ def parse_args():
 
 def main():
     args = parse_args()
-    door_boxes = [(1250, 70, 1440, 310)]
+    door_boxes = [(615, 40, 718, 160)]
+    # door_boxes = [(1250, 70, 1440, 310)]
 
     cap, meta = get_video_capture(args.video)
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(meta['fps'] * args.start_sec))
     out = get_video_writer(args.output, meta)
 
-    tracker = JDETracker(opt, frame_rate=cap['fps'])
+    tracker = JDETracker(opt, frame_rate=meta['fps'])
     entered_doors_tracks = dict()  # track_id -> [list of coords]
     entered_doors = 0
 
@@ -49,7 +45,7 @@ def main():
             break
 
         # Detect and track
-        boxes, track_ids = predict_image(img, tracker)
+        boxes, track_ids = predict_image(img, tracker, (1088, 608))
 
         # Check if person is in doors
         for box, track_id in zip(boxes, track_ids):
@@ -94,7 +90,7 @@ def main():
     print('Finished!')
 
 
-def predict_image(img0, tracker, img_shape):
+def predict_image(img0, tracker, img_shape, w=1920, h=1080):
     # img0 = cv2.resize(img0, (w, h))
     img, _, _, _ = letterbox(img0, height=img_shape[0], width=img_shape[1])
     img = img.transpose(2, 0, 1)
