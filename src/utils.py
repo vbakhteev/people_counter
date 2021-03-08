@@ -12,6 +12,37 @@ def draw_box(img, box, color=(0, 255, 0), thickness=2):
     )
 
 
+def draw_polygon(img, box, color=(0, 255, 0), thickness=2):
+    cv2.line(
+        img,
+        (box[0], box[1]),
+        (box[2], box[3]),
+        [int(c) for c in color],
+        thickness,
+    )
+    cv2.line(
+        img,
+        (box[2], box[3]),
+        (box[4], box[5]),
+        [int(c) for c in color],
+        thickness,
+    )
+    cv2.line(
+        img,
+        (box[4], box[5]),
+        (box[6], box[7]),
+        [int(c) for c in color],
+        thickness,
+    )
+    cv2.line(
+        img,
+        (box[6], box[7]),
+        (box[0], box[1]),
+        [int(c) for c in color],
+        thickness,
+    )
+
+
 def draw_vector(img, vector, color=(0, 255, 0), thickness=2):
     cv2.arrowedLine(
         img,

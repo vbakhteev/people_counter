@@ -9,7 +9,7 @@ from configs.fairmot import opt
 from src.io import get_video_capture, get_video_writer
 from src.lib.datasets.dataset.jde import letterbox
 from src.lib.tracker.multitracker import JDETracker
-from src.utils import draw_box, get_color, iou, draw_vector, codirected_vectors
+from src.utils import draw_box, get_color, iou, draw_vector, draw_polygon, codirected_vectors, create_door_vectors
 
 
 def parse_args():
@@ -26,9 +26,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    # door_boxes = [(615, 40, 718, 160)]
-    door_boxes = [(1250, 70, 1440, 310)]
-    door_vectors = [(1345, 310, 1370, 430)]
+
+    door_boxes = [(1250, 70, 1240, 300, 1430, 310, 1450, 80)]
+    door_vectors = create_door_vectors(door_boxes)
 
     cap, meta = get_video_capture(args.video)
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(meta['fps'] * args.start_sec))
@@ -52,7 +52,8 @@ def main():
         for box, track_id in zip(boxes, track_ids):
             in_doors = False
             for door_box in door_boxes:
-                in_doors = (iou(door_box, box) > 0)
+                d_b = (door_box[0], door_box[1], door_box[4], door_box[5])
+                in_doors = (iou(d_b, box) > 0)
                 if in_doors:
                     break
 
@@ -79,8 +80,7 @@ def main():
 
         # Draw doors
         for box in door_boxes:
-            draw_box(img, box, color=(255, 0, 0), thickness=5)
-
+            draw_polygon(img, box, color=(255, 0, 0), thickness=5)
         # Draw door vectors
         for vector in door_vectors:
             draw_vector(img, vector, color=(0, 255, 0), thickness=3)
