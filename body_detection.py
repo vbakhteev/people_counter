@@ -39,9 +39,9 @@ def main():
     n_frames = int(args.duration * meta['fps'])
     for _ in tqdm(range(n_frames)):
         it_worked, img = cap.read()
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         if not it_worked:
             break
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # Detect and track
         boxes, track_ids = predict_image(img, tracker, (1088, 608))
@@ -86,7 +86,7 @@ def main():
         out.write(frame)
 
     out.release()
-    print('Finished!')
+    print(f'Finished! Total entered: {entered_doors}')
 
 
 def predict_image(img0, tracker, img_shape):
