@@ -83,3 +83,26 @@ def codirected_vectors(vector, t_vector):
     if np.dot(vector, t_vector) < 0:
         return False
     return True
+
+
+def create_door_vectors(boxes):
+    vectors = []
+    for box in boxes:
+        x1, y1 = box[2], box[3]
+        x2, y2 = box[4], box[5]
+        v_start_x = (x1 + x2) / 2
+        v_start_y = (y1 + y2) / 2
+
+        slope = (y2 - y1) / (x2 - x1)
+
+        tg = abs(slope)
+        v_end_y = v_start_y + 100
+        if slope > 0:
+            v_end_x = v_start_x - tg * 100
+        elif slope < 0:
+            v_end_x = v_start_x + tg * 100
+        else:
+            v_end_x = v_start_x
+
+        vectors.append((v_start_x, v_start_y, v_end_x, v_end_y))
+    return vectors
