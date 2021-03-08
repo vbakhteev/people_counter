@@ -9,7 +9,7 @@ from configs.fairmot import opt
 from src.io import get_video_capture, get_video_writer
 from src.lib.datasets.dataset.jde import letterbox
 from src.lib.tracker.multitracker import JDETracker
-from src.utils import draw_box, get_color, iou
+from src.utils import draw_box, get_color, iou, draw_vector, codirected_vectors
 
 
 def parse_args():
@@ -26,8 +26,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    door_boxes = [(615, 40, 718, 160)]
-    # door_boxes = [(1250, 70, 1440, 310)]
+    # door_boxes = [(615, 40, 718, 160)]
+    door_boxes = [(1250, 70, 1440, 310)]
+    door_vectors = [(1345, 310, 1370, 430)]
 
     cap, meta = get_video_capture(args.video)
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(meta['fps'] * args.start_sec))
@@ -59,10 +60,12 @@ def main():
                 # if person just left a door, then check his direction and remove his track
                 if track_id in entered_doors_tracks:
                     track = entered_doors_tracks[track_id]
-                    diff = track[-1][0] - track[0][0]
-                    if diff > 50:
-                        entered_doors += 1
-
+                    track_vector = (track[0][0], track[0][1], track[-1][0], track[-1][1])
+                    draw_vector(img, track_vector, color=(0, 255, 0), thickness=3)
+                    for vector in door_vectors:
+                        if codirected_vectors(vector, track_vector):
+                            entered_doors += 1
+                            break
                     del entered_doors_tracks[track_id]
 
                 continue
@@ -77,6 +80,10 @@ def main():
         # Draw doors
         for box in door_boxes:
             draw_box(img, box, color=(255, 0, 0), thickness=5)
+
+        # Draw door vectors
+        for vector in door_vectors:
+            draw_vector(img, vector, color=(0, 255, 0), thickness=3)
         # Draw boxes
         for box, track_id in zip(boxes, track_ids):
             draw_box(img, box, color=get_color(track_id))
@@ -98,7 +105,10 @@ def predict_image(img0, tracker, img_shape, w=1920, h=1080):
     img /= 255.0
 
     # run tracking
-    blob = torch.from_numpy(img).cuda().unsqueeze(0)
+    if opt.gpus[0] >= 0:
+        blob = torch.from_numpy(img).cuda().unsqueeze(0)
+    else:
+        blob = torch.from_numpy(img).unsqueeze(0)
     online_targets = tracker.update(blob, img0)
     online_tlwhs = []
     online_ids = []
