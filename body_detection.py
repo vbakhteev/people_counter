@@ -15,7 +15,6 @@ from src.utils import draw_box, get_color, iou, draw_vector, draw_polygon, codir
 def parse_args():
     parser = argparse.ArgumentParser(description='People counter based on people detection and tracking')
     parser.add_argument('video', type=str, help='Path to the video')
-    parser.add_argument('config', type=str, help='Path to config file')
     parser.add_argument('weights', type=str, help='Path to the weights of people detector')
     parser.add_argument('--output', type=str, default='outputs/body_detection.mp4', help='Path to the output')
     parser.add_argument('--start_sec', type=int, default=0, help='Process file from this second')
@@ -97,12 +96,9 @@ def main():
     print('Finished!')
 
 
-def predict_image(img0, tracker, img_shape, w=1920, h=1080):
-    # img0 = cv2.resize(img0, (w, h))
-    img, _, _, _ = letterbox(img0, height=img_shape[0], width=img_shape[1])
-    img = img.transpose(2, 0, 1)
-    img = np.ascontiguousarray(img, dtype=np.float32)
-    img /= 255.0
+def predict_image(img0, tracker, img_shape):
+    img = letterbox(img0, height=img_shape[0], width=img_shape[1])[0]
+    img = (img.transpose(2, 0, 1) / 255).astype('float32')
 
     # run tracking
     if opt.gpus[0] >= 0:
@@ -121,7 +117,7 @@ def predict_image(img0, tracker, img_shape, w=1920, h=1080):
             online_tlwhs.append(tlwh)
             online_ids.append(tid)
 
-    boxes = np.array(online_tlwhs).astype(int)
+    boxes = np.array(online_tlwhs, dtype=int)
     if len(boxes):
         boxes[:, 2] += boxes[:, 0]
         boxes[:, 3] += boxes[:, 1]
