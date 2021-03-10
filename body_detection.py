@@ -9,6 +9,7 @@ from configs.fairmot import opt
 from src.io import get_video_capture, get_video_writer
 from src.lib.datasets.dataset.jde import letterbox
 from src.lib.tracker.multitracker import JDETracker
+from src.sort import Sort
 from src.utils import draw_box, get_color, iou, draw_vector, draw_polygon, codirected_vectors, create_door_vectors
 
 
@@ -26,18 +27,23 @@ def parse_args():
 def main():
     args = parse_args()
 
-    door_boxes = [(1250, 70, 1240, 300, 1430, 310, 1450, 80)]
+    # door_boxes = [(1250, 70, 1240, 300, 1430, 310, 1450, 80)]
+    # door_boxes = [(615, 40, 615, 160, 718, 160, 718, 40)]
+    door_boxes = [(625, 35, 615, 155, 710, 160, 718, 44)]
     door_vectors = create_door_vectors(door_boxes)
 
     cap, meta = get_video_capture(args.video)
+    num_frames = cv2.CAP_PROP_FRAME_COUNT
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(meta['fps'] * args.start_sec))
     out = get_video_writer(args.output, meta)
 
     tracker = JDETracker(opt, frame_rate=meta['fps'])
+    sort_tracker = None
+    # sort_tracker = Sort(4)
     entered_doors_tracks = dict()  # track_id -> [list of coords]
     entered_doors = 0
 
-    n_frames = int(args.duration * meta['fps'])
+    n_frames = min(int(args.duration * meta['fps']), int(cap.get(num_frames) - meta['fps'] * args.start_sec))
     for _ in tqdm(range(n_frames)):
         it_worked, img = cap.read()
         if not it_worked:
@@ -45,7 +51,7 @@ def main():
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # Detect and track
-        boxes, track_ids = predict_image(img, tracker, (1088, 608))
+        boxes, track_ids = predict_image(img, tracker, (1088, 608), sort_tracker=sort_tracker)
 
         # Check if person is in doors
         for box, track_id in zip(boxes, track_ids):
@@ -96,7 +102,7 @@ def main():
     print(f'Finished! Total entered: {entered_doors}')
 
 
-def predict_image(img0, tracker, img_shape):
+def predict_image(img0, mot_tracker, img_shape, sort_tracker=None):
     img = letterbox(img0, height=img_shape[0], width=img_shape[1])[0]
     img = (img.transpose(2, 0, 1) / 255).astype('float32')
 
@@ -105,13 +111,20 @@ def predict_image(img0, tracker, img_shape):
         blob = torch.from_numpy(img).cuda().unsqueeze(0)
     else:
         blob = torch.from_numpy(img).unsqueeze(0)
-    online_targets = tracker.update(blob, img0)
+    dets, id_feature = mot_tracker.predict(blob, img0)
+    if sort_tracker is None:
+        online_targets = mot_tracker.update(dets, id_feature)
+        online_targets = [(t.tlwh, t.track_id) for t in online_targets]
+    else:
+        online_targets = sort_tracker.update(dets)
+        online_targets = [([t[0], t[1], t[2] - t[0], t[3] - t[1]], t[4]) for t in online_targets]
+
     online_tlwhs = []
     online_ids = []
 
-    for t in online_targets:
-        tlwh = t.tlwh
-        tid = t.track_id
+    for tlwh, tid in online_targets:
+        # tlwh = t.tlwh
+        # tid = t.track_id
         vertical = tlwh[2] / tlwh[3] > 1.6
         if tlwh[2] * tlwh[3] > opt.min_box_area and not vertical:
             online_tlwhs.append(tlwh)

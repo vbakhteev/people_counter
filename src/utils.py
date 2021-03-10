@@ -90,6 +90,8 @@ def create_door_vectors(boxes):
     for box in boxes:
         x1, y1 = box[2], box[3]
         x2, y2 = box[4], box[5]
+        # x1, y1 = box[0], box[1]
+        # x2, y2 = box[2], box[3]
         v_start_x = (x1 + x2) / 2
         v_start_y = (y1 + y2) / 2
 
